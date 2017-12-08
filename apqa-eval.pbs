@@ -1,0 +1,15 @@
+#PBS -N apqa
+#PBS -l walltime=48:00:00
+#PBS -l nodes=1:ppn=28:gpus=1:default
+#PBS -j oe
+# setup tmp dir to work in
+cd $PBS_O_WORKDIR
+cp -ar ./ $TMPDIR #preserves symlinks, acts recursively
+cd $TMPDIR
+#run my script
+module load python/3.6 cuda/8.0.44
+python test.py --data_type=AmazonPQA
+# copy files back
+mkdir -p ~/$PBS_JOBID
+cp -ar ./ ~/$PBS_JOBID/.
+
