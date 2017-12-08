@@ -1,8 +1,9 @@
 import tensorflow as tf
 import sys
 import numpy as np
+import pdb
 
-from preprocess import Word2Vec, MSRP, WikiQA
+from preprocess import Word2Vec, MSRP, WikiQA, AmazonPQA
 from ABCNN import ABCNN
 from utils import build_path
 from sklearn.externals import joblib
@@ -11,6 +12,8 @@ from sklearn.externals import joblib
 def test(w, l2_reg, epoch, max_len, model_type, num_layers, data_type, classifier, word2vec, num_classes=2):
     if data_type == "WikiQA":
         test_data = WikiQA(word2vec=word2vec, max_len=max_len)
+    elif data_type == "AmazonPQA":
+        test_data = AmazonPQA(word2vec=word2vec, max_len=max_len)
     else:
         test_data = MSRP(word2vec=word2vec, max_len=max_len)
 
@@ -45,8 +48,10 @@ def test(w, l2_reg, epoch, max_len, model_type, num_layers, data_type, classifie
 
             QA_pairs = {}
             s1s, s2s, labels, features = test_data.next_batch(batch_size=test_data.data_size)
-
+            #pdb.set_trace()
             for i in range(test_data.data_size):
+                #print("i: {}\ns1s[i]: {}\ns2s[i]: {}\nlabels[i]: {}\nfeatures[i]: {}\n".format(i, s1s[i], s2s[i], labels[i], features[i]))
+                #print("shape s1s[i]: {}\nshape s2s[i]: {}\n".format(s1s[i].shape, s2s[i].shape))
                 pred, clf_input = sess.run([model.prediction, model.output_features],
                                            feed_dict={model.x1: np.expand_dims(s1s[i], axis=0),
                                                       model.x2: np.expand_dims(s2s[i], axis=0),
@@ -85,7 +90,11 @@ def test(w, l2_reg, epoch, max_len, model_type, num_layers, data_type, classifie
                         p += 1
                         AP += p / (idx + 1)
 
-                AP /= p
+                try:
+                    AP /= p
+                except ZeroDivisionError:
+                    print("ZeroDivisionError")
+                    pdb.set_trace()
                 MAP += AP
 
             num_questions = len(QA_pairs.keys())
@@ -124,11 +133,14 @@ if __name__ == "__main__":
     params = {
         "ws": 4,
         "l2_reg": 0.0004,
-        "epoch": 50,
+        #"epoch": 50,
+        #"epoch": 20,
+        "epoch": 5,
         "max_len": 40,
         "model_type": "BCNN",
         "num_layers": 2,
-        "data_type": "WikiQA",
+        #"data_type": "WikiQA",
+        "data_type": "AmazonPQA",
         "classifier": "LR",
         "word2vec": Word2Vec()
     }

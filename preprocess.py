@@ -1,6 +1,7 @@
 import numpy as np
 import nltk
 import gensim
+import pdb
 
 
 class Word2Vec():
@@ -50,13 +51,21 @@ class Data():
             s2 = self.s2s[self.index + i]
 
             # [1, d0, s]
-            s1_mats.append(np.expand_dims(np.pad(np.column_stack([self.word2vec.get(w) for w in s1]),
+            try:
+                s1_mats.append(np.expand_dims(np.pad(np.column_stack([self.word2vec.get(w) for w in s1]),
                                                  [[0, 0], [0, self.max_len - len(s1)]],
                                                  "constant"), axis=0))
+            except ValueError:
+                print("Unable to append sentence1 to input matrix:")
+                print(s1)
 
-            s2_mats.append(np.expand_dims(np.pad(np.column_stack([self.word2vec.get(w) for w in s2]),
+            try:
+                s2_mats.append(np.expand_dims(np.pad(np.column_stack([self.word2vec.get(w) for w in s2]),
                                                  [[0, 0], [0, self.max_len - len(s2)]],
                                                  "constant"), axis=0))
+            except ValueError:
+                print("Unable to append sentence2 to input matrix:")
+                print(s2)
 
         # [batch_size, d0, s]
         batch_s1s = np.concatenate(s1_mats, axis=0)
@@ -127,6 +136,44 @@ class WikiQA(Data):
                 self.labels.append(label)
                 word_cnt = len([word for word in s1 if (word not in stopwords) and (word in s2)])
                 self.features.append([len(s1), len(s2), word_cnt])
+
+                local_max_len = max(len(s1), len(s2))
+                if local_max_len > self.max_len:
+                    self.max_len = local_max_len
+
+        self.data_size = len(self.s1s)
+
+        flatten = lambda l: [item for sublist in l for item in sublist]
+        q_vocab = list(set(flatten(self.s1s)))
+        idf = {}
+        for w in q_vocab:
+            idf[w] = np.log(self.data_size / len([1 for s1 in self.s1s if w in s1]))
+
+        for i in range(self.data_size):
+            wgt_word_cnt = sum([idf[word] for word in self.s1s[i] if (word not in stopwords) and (word in self.s2s[i])])
+            self.features[i].append(wgt_word_cnt)
+
+        self.num_features = len(self.features[0])
+
+class AmazonPQA(Data):
+    def open_file(self, mode):
+        with open("./AmazonPQA_Corpus/threefield-" + mode + ".tsv", "r", encoding="utf-8") as f:
+            stopwords = nltk.corpus.stopwords.words("english")
+            #pdb.set_trace()
+            for line in f:
+                items = line[:-1].split("\t")
+
+                #s1 = items[0].lower().split()
+                s1 = items[0].lower().split()[:40]
+                # truncate answers to 40 tokens.
+                s2 = items[1].lower().split()[:40]
+                label = int(items[2])
+
+                self.s1s.append(s1)
+                self.s2s.append(s2)
+                self.labels.append(label)
+                word_cnt = len([word for word in s1 if (word not in stopwords) and (word in s2)])
+                self.features.append([len(s1), len(s2), word_cnt]) #four features are label, len(s1), len(s2), word_cnt (words in both s1 and s2, excluding stopwords)
 
                 local_max_len = max(len(s1), len(s2))
                 if local_max_len > self.max_len:

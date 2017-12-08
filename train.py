@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import sys
 
-from preprocess import Word2Vec, MSRP, WikiQA
+from preprocess import Word2Vec, MSRP, WikiQA, AmazonPQA
 from ABCNN import ABCNN
 from utils import build_path
 from sklearn import linear_model, svm
@@ -12,6 +12,8 @@ from sklearn.externals import joblib
 def train(lr, w, l2_reg, epoch, batch_size, model_type, num_layers, data_type, word2vec, num_classes=2):
     if data_type == "WikiQA":
         train_data = WikiQA(word2vec=word2vec)
+    elif data_type == "AmazonPQA":
+        train_data = AmazonPQA(word2vec=word2vec)
     else:
         train_data = MSRP(word2vec=word2vec)
 
@@ -106,7 +108,9 @@ if __name__ == "__main__":
         "lr": 0.08,
         "ws": 4,
         "l2_reg": 0.0004,
-        "epoch": 50,
+        #"epoch": 50,
+        #"epoch": 25,
+        "epoch": 5,
         "batch_size": 64,
         "model_type": "BCNN",
         "num_layers": 2,
